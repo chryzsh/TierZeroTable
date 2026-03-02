@@ -18,8 +18,8 @@ name: "CLA Assistant"
 on:
   issue_comment:
     types: [created, edited]
-  pull_request_target:
-    types: [opened,closed,synchronize]
+  # pull_request_target:
+  #   types: [opened,closed,synchronize]
 
 jobs:
   CLAssistant:
