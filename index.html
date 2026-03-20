@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TierZeroTable</title>
   <style>
     body {
@@ -15,15 +17,87 @@
       max-width: 100%;
     }
 
+    .content-container {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .content-container.has-detail .table-container {
+      flex: 0 0 60%;
+      max-width: 60%;
+    }
+
+    .content-container .table-container {
+      flex: 1 1 auto;
+      max-width: 100%;
+    }
+
+    .detail-panel {
+      display: none;
+      flex: 0 0 calc(40% - 20px);
+      max-width: calc(40% - 20px);
+      margin-right: 20px;
+      border: 1px solid #888;
+      border-radius: 6px;
+      padding: 12px;
+      background: #f8f8f8;
+      box-sizing: border-box;
+      position: sticky; /* Keep visible while scrolling */
+      top: 20px;        /* Match page padding for nice spacing */
+      max-height: calc(100vh - 40px); /* Stay within viewport */
+      overflow: auto;   /* Scroll internal content if needed */
+    }
+
+    .content-container.has-detail .detail-panel {
+      display: block;
+    }
+
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .detail-title {
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .detail-body dl {
+      margin: 0;
+    }
+
+    .detail-body dt {
+      font-weight: bold;
+      margin-top: 8px;
+    }
+
+    .detail-body dd {
+      margin: 4px 0 8px 0;
+    }
+
+    .selected-row {
+      outline: 2px solid #555;
+      outline-offset: -2px;
+      background-color: #e9f3ff;
+    }
+
     .search-container {
       max-width: 100%;
       overflow-x: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
     }
 
     .search-input {
-      margin-bottom: 10px;
-      width: 100%;
-      min-width: 1000px; /* Match the table's min-width */
+      margin-bottom: 0;
+      width: 360px;
+      max-width: 100%;
+      min-width: 220px;
       padding: 8px;
       font-size: 16px;
       box-sizing: border-box;
@@ -76,6 +150,11 @@
       background-color: #D5D5D5;
     }
 
+    /* Show pointer cursor when hovering over clickable rows */
+    #table tbody tr:hover {
+      cursor: pointer;
+    }
+
     a:link, a:visited {
       color: blue;
       text-decoration: underline;
@@ -106,50 +185,335 @@
       font-size: 18px;
       margin-top: 20px;
     }
+
+    /* Filter button */
+    .filter-btn {
+      margin-left: 0;
+      padding: 6px;
+      border: none;
+      border-radius: 50%;
+      background: #eee;
+      width: 36px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #333;
+    }
+    .filter-btn:hover { background: #e0e0e0; }
+    .filter-btn:focus { outline: 2px solid #666; outline-offset: 2px; }
+
+    /* Active filter visual indication */
+    .filter-btn.filters-active {
+      background: #cfe3ff; /* light blue */
+      color: #0b57d0;      /* strong blue icon */
+    }
+
+    /* Modal styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.3);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      width: 730px;
+      max-width: 95%;
+      padding: 16px 20px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .modal-section {
+      margin: 12px 0;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .btn {
+      padding: 8px 12px;
+      border: 1px solid #888;
+      border-radius: 4px;
+      background: #eee;
+      cursor: pointer;
+    }
+
+    .btn.primary {
+      background: #ddd;
+      border-color: #666;
+    }
+
+    /* Visually hidden (for accessible labels) */
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nunito+Sans">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 <body>
-  <h1 class="title">TierZeroTable</h1>
+  <h1>TierZeroTable</h1>
 
-  <p class="line1">Table of AD and Azure assets and whether they belong to Tier Zero.</p>
-  <p class="line2">Description of table columns and additional resources can be found here: <a href="https://github.com/SpecterOps/TierZeroTable/">https://github.com/SpecterOps/TierZeroTable</a></p>
-  <p class="line3">Hint: Click on a header to sort the table alphabetically.</p>
+  <p>Table of AD and Azure assets and whether they belong to Tier Zero.</p>
+  <p>Description of table columns and additional resources can be found here: <a href="https://github.com/SpecterOps/TierZeroTable/">https://github.com/SpecterOps/TierZeroTable</a></p>
+  <p>Hint: Select an asset to view details and click on a header to sort the table alphabetically.</p>
 
   <!-- Search Input inside a container -->
   <div class="search-container">
-    <input type="text" id="searchInput" class="search-input" placeholder="Search...">
+    <label for="searchInput" class="visually-hidden">Search table</label>
+    <input type="text" id="searchInput" class="search-input" placeholder="Search..." aria-label="Search table">
+    <button id="openFilterBtn" class="filter-btn" title="Filter" aria-label="Filter">
+      <i class="fa-solid fa-filter" aria-hidden="true"></i>
+    </button>
+  </div>
+  <!-- Filter Modal -->
+  <div id="filterOverlay" class="modal-overlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="filterTitle">
+      <div class="modal-header">
+        <span id="filterTitle" class="modal-title">Filter</span>
+        <button id="clearAllFilters" class="btn" title="Clear All">Clear All</button>
+      </div>
+
+      <div class="modal-section">
+        <label for="typeSelect"><strong>Category</strong></label><br>
+        <select id="typeSelect">
+          <option value="">All</option>
+          <!-- Options populated dynamically -->
+        </select>
+      </div>
+
+      <div class="modal-section">
+        <div><strong>Platform</strong></div>
+        <div id="idpContainer"><!-- Options populated dynamically --></div>
+      </div>
+
+      <div class="modal-section">
+        <div><strong>Microsoft PAS Role</strong></div>
+        <div id="pasContainer"><!-- Options populated dynamically --></div>
+      </div>
+
+      <div class="modal-section">
+        <div><strong>AdminSDHolder Protected</strong></div>
+        <div id="adminsdContainer"><!-- Options populated dynamically --></div>
+      </div>
+
+      <div class="modal-section">
+        <div><strong>Episode</strong></div>
+        <div id="episodeContainer"><!-- Options populated dynamically --></div>
+      </div>
+
+      <div class="modal-section">
+        <div><strong>Tier Zero Default Risk</strong></div>
+        <div id="compDefaultContainer"><!-- Options populated dynamically --></div>
+      </div>
+
+      <div class="modal-section">
+        <div><strong>Tier Zero Config Risk</strong></div>
+        <div id="compConfigContainer"><!-- Options populated dynamically --></div>
+      </div>
+
+      <div class="modal-section">
+        <div><strong>Tier Zero</strong></div>
+        <div id="isTierZeroContainer"><!-- Options populated dynamically --></div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="closeFilterBtn" class="btn" title="Cancel">Cancel</button>
+        <button id="confirmFilterBtn" class="btn primary" title="Confirm">Confirm</button>
+      </div>
+    </div>
   </div>
 
-  <div class="table-container">
-    <table id="csvTable">
-      <!-- Table content will be inserted here by JavaScript -->
-    </table>
+  <div id="contentContainer" class="content-container">
+    <div class="table-container">
+      <table id="table" aria-describedby="tableHint">
+        <!-- Table content will be inserted here by JavaScript -->
+      </table>
+    </div>
+
+    <aside id="detailPanel" class="detail-panel" role="region" aria-labelledby="detailTitle" aria-hidden="true">
+      <div class="detail-header">
+        <span id="detailTitle" class="detail-title">Details</span>
+        <button id="closeDetailBtn" class="btn" title="Close details" aria-label="Close details">Close</button>
+      </div>
+      <div id="detailBody" class="detail-body">
+        <p class="visually-hidden">Select a row to view details.</p>
+      </div>
+    </aside>
   </div>
 
   <!-- "No results found" message -->
-  <div id="noResultsMessage" class="no-results" style="display: none;">No results found.</div>
+  <div id="noResultsMessage" class="no-results" style="display: none;" aria-live="polite">No results found.</div>
+  <p id="tableHint" class="visually-hidden">Click a column header to sort. Use the filter button to refine results.</p>
 
-  <!-- Include Papa Parse Library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <!-- Include LinkifyJS Library -->
-  <script src="https://cdn.jsdelivr.net/npm/linkifyjs@3.0.3/dist/linkify.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/linkifyjs@3.0.3/dist/linkify-html.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/linkifyjs@3.0.3/dist/linkify.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/linkifyjs@3.0.3/dist/linkify-html.min.js"></script>
   <script>
-    // URL of the CSV file
-    var csvFileUrl = 'https://raw.githubusercontent.com/SpecterOps/TierZeroTable/main/TierZeroTable.csv';
+    // URL of the JSON file
+    const jsonFileUrl = './TierZeroTable.json';
 
-    var table; // Declare table variable in global scope
-    var sortDirections = {}; // To keep track of sort directions for each column
-    var originalData = []; // Global variable to store original data
-    var headers; // Global variable to store headers
-    var currentData = []; // Current displayed data
-    var currentSortedColumnIndex = null; // Currently sorted column index
-    var currentSortDirection = 'none'; // Current sort direction
+    let table; // Declare table variable in global scope
+    let sortDirections = {}; // To keep track of sort directions for each column
+    let originalData = []; // Global variable to store original data
+    let allHeaders = []; // Full set of headers from data
+    let visibleHeaders = []; // Headers shown in the table
+    let keyHeader = null; // Header used as row key (first header)
+    let currentData = []; // Current displayed data
+    let currentSortedColumnIndex = null; // Currently sorted column index
+    let currentSortDirection = 'none'; // Current sort direction
+    let selectedRowKey = null; // Key of the currently selected row
+    // Filter selections state
+    const filterState = {
+      type: '',
+      idp: new Set(),
+      pas: new Set(),
+      adminsd: new Set(),
+      episode: new Set(),
+      compDefault: new Set(),
+      compConfig: new Set(),
+      isTierZero: new Set()
+    };
+
+    // Escape HTML to prevent XSS when inserting strings
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Linkify options to open links safely
+    const linkifyOptions = {
+      defaultProtocol: 'https',
+      attributes: {
+        rel: 'noopener noreferrer',
+        target: '_blank'
+      }
+    };
+
+    // Columns to hide from the main table but show in the detail panel
+    const hiddenFields = new Set([
+      'Platform',
+      'Identification',
+      'Description',
+      'Rationale',
+      'Cypher',
+      'Microsoft PAS Role',
+      'AdminSDHolder Protected',
+      'Episode',
+      'References'
+    ]);
+
+    function getRowKey(rowData) {
+      return String(rowData[keyHeader] || '');
+    }
+
+    function renderDetail(rowData) {
+      const container = document.getElementById('contentContainer');
+      const panel = document.getElementById('detailPanel');
+      const titleEl = document.getElementById('detailTitle');
+      const bodyEl = document.getElementById('detailBody');
+
+      titleEl.textContent = getRowKey(rowData) || 'Details';
+
+      // Build the details: special-case "External links" (linkify), render others as plain text
+      const dl = document.createElement('dl');
+      (allHeaders && allHeaders.length ? allHeaders : Object.keys(rowData || {}))
+        .filter(function(h){ return h !== keyHeader; })
+        .forEach(function(h){
+          const dt = document.createElement('dt');
+          dt.textContent = h;
+          dl.appendChild(dt);
+
+          const dd = document.createElement('dd');
+          const val = rowData[h] == null ? '' : String(rowData[h]);
+          const isExternal = String(h).toLowerCase() === 'references';
+          if (isExternal) {
+            // External links: escaped + linkify-html for clickable anchors, preserve newlines
+            if (typeof linkifyHtml === 'function') {
+              let processed = linkifyHtml(escapeHtml(val), linkifyOptions);
+              processed = processed.replace(/\r?\n/g, '<br>');
+              dd.innerHTML = processed;
+            } else {
+              // Fallback: render as plain text with line breaks if linkify-html not available
+              const parts = val.split(/\r?\n/);
+              parts.forEach(function(part, idx){
+                dd.appendChild(document.createTextNode(part));
+                if (idx < parts.length - 1) dd.appendChild(document.createElement('br'));
+              });
+            }
+          } else {
+            // All other fields: plain text to preserve angle brackets
+            const parts = val.split(/\r?\n/);
+            parts.forEach(function(part, idx){
+              dd.appendChild(document.createTextNode(part));
+              if (idx < parts.length - 1) dd.appendChild(document.createElement('br'));
+            });
+          }
+          dl.appendChild(dd);
+        });
+
+      bodyEl.innerHTML = '';
+      bodyEl.appendChild(dl);
+      panel.setAttribute('aria-hidden', 'false');
+      container.classList.add('has-detail');
+      // Ensure the detail panel is visible even when selecting rows far down
+      try { panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) { /* noop */ }
+    }
+
+    function clearDetail() {
+      const container = document.getElementById('contentContainer');
+      const panel = document.getElementById('detailPanel');
+      const bodyEl = document.getElementById('detailBody');
+      selectedRowKey = null;
+      bodyEl.innerHTML = '<p class="visually-hidden">Select a row to view details.</p>';
+      panel.setAttribute('aria-hidden', 'true');
+      container.classList.remove('has-detail');
+      // remove selection highlight
+      Array.from(document.querySelectorAll('#table tbody tr.selected-row')).forEach(function(tr){ tr.classList.remove('selected-row'); });
+    }
 
     // Function to create and populate the table
     function createTable(data, sortedColumnIndex = null, sortDirection = 'none') {
-      table = document.getElementById('csvTable');
+      table = document.getElementById('table');
       table.innerHTML = ''; // Clear existing table content
 
       if (data.length === 0) {
@@ -159,21 +523,21 @@
         document.getElementById('noResultsMessage').style.display = 'none';
       }
 
-      headers = Object.keys(data[0]);
-      var thead = document.createElement('thead');
-      var headerRow = document.createElement('tr');
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
 
-      headers.forEach(function(header, index) {
-        var th = document.createElement('th');
+      visibleHeaders.forEach(function(header, index) {
+        const th = document.createElement('th');
+        th.setAttribute('scope', 'col');
         th.textContent = header;
-        th.onclick = function() {
-          sortTable(index);
-        };
+        th.tabIndex = 0;
+        th.addEventListener('click', function(){ sortTable(index); });
+        th.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sortTable(index); }});
         th.title = 'Click to sort by ' + header;
         th.style.position = 'relative';
 
         // Add sort icon span
-        var sortIcon = document.createElement('span');
+        const sortIcon = document.createElement('span');
         sortIcon.className = 'sort-icon';
         th.appendChild(sortIcon);
 
@@ -181,9 +545,15 @@
         if (index === sortedColumnIndex) {
           if (sortDirection === 'asc') {
             th.classList.add('sorted-asc');
+            th.setAttribute('aria-sort', 'ascending');
           } else if (sortDirection === 'desc') {
             th.classList.add('sorted-desc');
+            th.setAttribute('aria-sort', 'descending');
+          } else {
+            th.setAttribute('aria-sort', 'none');
           }
+        } else {
+          th.setAttribute('aria-sort', 'none');
         }
 
         headerRow.appendChild(th);
@@ -193,32 +563,38 @@
       table.appendChild(thead);
 
       // Populate table with data
-      var tbody = document.createElement('tbody');
+      const tbody = document.createElement('tbody');
+      const frag = document.createDocumentFragment();
 
       data.forEach(function(rowData) {
-        if (rowData[headers[0]] !== "") {
-          var row = document.createElement('tr');
-          headers.forEach(function(header) {
-            var cell = document.createElement('td');
-            var cellText = rowData[header];
+        if (String(rowData[keyHeader] || '') !== "") {
+          const row = document.createElement('tr');
+          const key = getRowKey(rowData);
+          row.dataset.key = key;
+          row.tabIndex = 0;
+          row.addEventListener('click', function(){ handleRowSelect(rowData); });
+          row.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleRowSelect(rowData); }});
+          visibleHeaders.forEach(function(header) {
+            const cell = document.createElement('td');
+            const cellText = rowData[header] == null ? '' : String(rowData[header]);
 
-            // Process the cell text to convert URLs into hyperlinks using LinkifyJS
-            var processedText = linkifyHtml(cellText, {
-              defaultProtocol: 'https'
-            });
+            // Escape HTML first, then linkify safely
+            let processedText = linkifyHtml(escapeHtml(cellText), linkifyOptions);
+            // Replace newline characters with <br> so multi-line text renders
+            processedText = processedText.replace(/\r?\n/g, '<br>');
 
             // Create a temporary element to strip HTML tags and get text length
-            var tempElement = document.createElement('div');
+            const tempElement = document.createElement('div');
             tempElement.innerHTML = processedText;
-            var textContent = tempElement.textContent || tempElement.innerText || '';
+            const textContent = tempElement.textContent || tempElement.innerText || '';
 
             // Adjusted length threshold to 100 characters
             if (textContent.length > 100) { // Adjust the length as needed
-              var span = document.createElement('span');
+              const span = document.createElement('span');
               span.className = 'truncate';
               span.innerHTML = processedText; // Full processed text with hyperlinks
 
-              var expandBtn = document.createElement('button');
+              const expandBtn = document.createElement('button');
               expandBtn.className = 'expand-btn';
               expandBtn.textContent = 'Read more';
               expandBtn.setAttribute('aria-expanded', 'false');
@@ -245,59 +621,222 @@
 
             row.appendChild(cell);
           });
-          tbody.appendChild(row);
+          frag.appendChild(row);
+            if (selectedRowKey && key === selectedRowKey) {
+              row.classList.add('selected-row');
+            }
         }
       });
 
+      tbody.appendChild(frag);
       table.appendChild(tbody);
+
+      // If selection exists, ensure detail is shown with current data
+      if (selectedRowKey) {
+        const selectedData = data.find(function(r){ return getRowKey(r) === selectedRowKey; });
+        if (selectedData) {
+          renderDetail(selectedData);
+          const selRow = table.querySelector('tbody tr[data-key="' + selectedRowKey.replace(/"/g, '\\"') + '"]');
+          if (selRow) selRow.classList.add('selected-row');
+        } else {
+          clearDetail();
+        }
+      }
     }
 
-    // Load Papa Parse library and initialize the table
-    window.onload = function() {
-      Papa.parse(csvFileUrl, {
-        download: true,
-        header: true,
-        complete: function(results) {
-          originalData = results.data.filter(function(row) {
+    // Load JSON and initialize the table
+    window.addEventListener('DOMContentLoaded', function() {
+      fetch(jsonFileUrl)
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+          originalData = data.filter(function(row) {
             return Object.values(row).some(function(value) {
               return value !== null && value !== '';
             });
           });
-          currentData = originalData.slice(); // Copy of the original data
+          currentData = originalData.slice();
+          // Initialize headers
+          allHeaders = Object.keys(originalData[0] || {});
+          keyHeader = allHeaders[0] || '';
+          visibleHeaders = allHeaders.filter(function(h){ return !hiddenFields.has(h); });
           createTable(currentData);
 
-          // Add search functionality
-          document.getElementById('searchInput').addEventListener('keyup', function() {
-            var filter = this.value.toLowerCase();
-            var filteredData = originalData.filter(function(row) {
-              return Object.values(row).some(function(value) {
-                return value.toLowerCase().indexOf(filter) > -1;
-              });
+          // Populate Type select dynamically
+          const typeSelect = document.getElementById('typeSelect');
+          const types = Array.from(new Set(originalData.map(function(r){ return r['Category']; }))).sort();
+          types.forEach(function(t){
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = t;
+            typeSelect.appendChild(opt);
+          });
+
+          // Populate dynamic checkbox options for compromise fields and Is Tier Zero
+          function populateCheckboxes(containerId, className, values) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            values.forEach(function(val, idx){
+              const label = document.createElement('label');
+              if (idx > 0) label.style.marginLeft = '16px';
+              const input = document.createElement('input');
+              input.type = 'checkbox';
+              input.className = className;
+              input.value = val;
+              label.appendChild(input);
+              label.appendChild(document.createTextNode(' ' + val));
+              container.appendChild(label);
             });
+          }
 
-            // Apply current sorting to the filtered data
-            if (currentSortedColumnIndex !== null && currentSortDirection !== 'none') {
-              var n = currentSortedColumnIndex;
-              var dir = currentSortDirection;
-              filteredData.sort(function(a, b) {
-                var x = a[headers[n]] ? a[headers[n]].toLowerCase() : '';
-                var y = b[headers[n]] ? b[headers[n]].toLowerCase() : '';
-                if (x < y) return dir === 'asc' ? -1 : 1;
-                if (x > y) return dir === 'asc' ? 1 : -1;
-                return 0;
-              });
-            }
+          const compDefaultVals = Array.from(new Set(originalData.map(function(r){ return String(r['Tier Zero Default Risk'] || '').trim(); }).filter(function(v){return v.length;}))).sort();
+          const compConfigVals = Array.from(new Set(originalData.map(function(r){ return String(r['Tier Zero Config Risk'] || '').trim(); }).filter(function(v){return v.length;}))).sort();
+          const isTierZeroVals = Array.from(new Set(originalData.map(function(r){ return String(r['Tier Zero'] || '').trim(); }).filter(function(v){return v.length;}))).sort();
 
-            currentData = filteredData; // Update current data
-            createTable(filteredData, currentSortedColumnIndex, currentSortDirection);
+          populateCheckboxes('compDefaultContainer','filter-cbd',compDefaultVals);
+          populateCheckboxes('compConfigContainer','filter-cbc',compConfigVals);
+          populateCheckboxes('isTierZeroContainer','filter-ist0',isTierZeroVals);
+
+          // Populate dynamic options for IdP, PAS, AdminSDHolder, and Episode
+          const idpVals = Array.from(new Set(originalData.map(function(r){ return String(r['Platform'] || '').trim(); }).filter(function(v){return v.length;}))).sort();
+          populateCheckboxes('idpContainer','filter-idp',idpVals);
+
+          const pasVals = Array.from(new Set(originalData.map(function(r){ return String(r['Microsoft PAS Role'] || '').trim().toUpperCase(); }).filter(function(v){return v.length;}))).sort();
+          populateCheckboxes('pasContainer','filter-pas',pasVals);
+
+          const adminsdVals = Array.from(new Set(originalData.map(function(r){ return String(r['AdminSDHolder Protected'] || '').trim().toUpperCase(); }).filter(function(v){return v.length;}))).sort();
+          populateCheckboxes('adminsdContainer','filter-adminsd',adminsdVals);
+
+          const episodeVals = Array.from(new Set(originalData.map(function(r){ return String(r['Episode'] || '').trim(); }).filter(function(v){return v.length;}))).sort();
+          populateCheckboxes('episodeContainer','filter-episode',episodeVals);
+
+          // Add search functionality with small debounce
+          function debounce(fn, delay){
+            let t;
+            return function(){
+              clearTimeout(t);
+              const args = arguments;
+              const ctx = this;
+              t = setTimeout(function(){ fn.apply(ctx, args); }, delay);
+            };
+          }
+          document.getElementById('searchInput').addEventListener('input', debounce(applySearchAndFilters, 150));
+
+          // Filter modal wiring
+          document.getElementById('openFilterBtn').addEventListener('click', function(){
+            const overlay = document.getElementById('filterOverlay');
+            overlay.style.display = 'flex';
+            overlay.setAttribute('aria-hidden', 'false');
+          });
+          document.getElementById('closeFilterBtn').addEventListener('click', closeFilterModal);
+          document.getElementById('clearAllFilters').addEventListener('click', function(){
+            // Reset state
+            filterState.type = '';
+            filterState.idp.clear();
+            filterState.pas.clear();
+            filterState.adminsd.clear();
+            filterState.episode.clear();
+            filterState.compDefault.clear();
+            filterState.compConfig.clear();
+            filterState.isTierZero.clear();
+            // Reset controls
+            document.getElementById('typeSelect').value = '';
+            Array.from(document.querySelectorAll('.filter-idp,.filter-pas,.filter-adminsd,.filter-episode,.filter-cbd,.filter-cbc,.filter-ist0')).forEach(function(cb){ cb.checked = false; });
+          });
+          document.getElementById('confirmFilterBtn').addEventListener('click', function(){
+            // Collect selections
+            filterState.type = document.getElementById('typeSelect').value;
+            filterState.idp = new Set(Array.from(document.querySelectorAll('.filter-idp:checked')).map(function(n){ return n.value; }));
+            filterState.pas = new Set(Array.from(document.querySelectorAll('.filter-pas:checked')).map(function(n){ return n.value; }));
+            filterState.adminsd = new Set(Array.from(document.querySelectorAll('.filter-adminsd:checked')).map(function(n){ return n.value; }));
+            filterState.episode = new Set(Array.from(document.querySelectorAll('.filter-episode:checked')).map(function(n){ return n.value; }));
+            filterState.compDefault = new Set(Array.from(document.querySelectorAll('.filter-cbd:checked')).map(function(n){ return n.value; }));
+            filterState.compConfig = new Set(Array.from(document.querySelectorAll('.filter-cbc:checked')).map(function(n){ return n.value; }));
+            filterState.isTierZero = new Set(Array.from(document.querySelectorAll('.filter-ist0:checked')).map(function(n){ return n.value; }));
+            closeFilterModal();
+            applySearchAndFilters();
+          });
+
+          // Close details button
+          document.getElementById('closeDetailBtn').addEventListener('click', function(){ clearDetail(); });
+        })
+        .catch(function(err) {
+          console.error('Failed to load JSON:', err);
+          const msg = document.getElementById('noResultsMessage');
+          msg.style.display = 'block';
+          msg.textContent = 'Failed to load data.';
+        });
+    });
+
+    function closeFilterModal(){
+      document.getElementById('filterOverlay').style.display = 'none';
+      document.getElementById('filterOverlay').setAttribute('aria-hidden', 'true');
+    }
+
+    function applySearchAndFilters(){
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const filteredData = originalData.filter(function(row){
+        // Search
+        let matchesSearch = true;
+        if (searchTerm) {
+          matchesSearch = Object.values(row).some(function(value){
+            const str = (value === null || value === undefined) ? '' : String(value);
+            return str.toLowerCase().indexOf(searchTerm) > -1;
           });
         }
+
+        // Type
+        const matchesType = !filterState.type || row['Category'] === filterState.type;
+        // IdP
+        const matchesIdp = (filterState.idp.size === 0) || filterState.idp.has(row['Platform']);
+        // Microsoft privileged access security role
+        const pasVal = (row['Microsoft PAS Role'] || '').toUpperCase();
+        const matchesPas = (filterState.pas.size === 0) || filterState.pas.has(pasVal);
+        // AdminSDHolder Protected
+        const adminsdVal = (row['AdminSDHolder Protected'] || '').toUpperCase();
+        const matchesAdminsd = (filterState.adminsd.size === 0) || filterState.adminsd.has(adminsdVal);
+        // Episode (normalize value)
+        const epRaw = row['Episode'] || '';
+        let epNorm = String(epRaw).trim();
+        // Common capitalization normalization
+        if (/community/i.test(epNorm)) epNorm = 'Community contribution';
+        const matchesEpisode = (filterState.episode.size === 0) || filterState.episode.has(epNorm);
+
+        // Compromise by default
+        const cbdVal = String(row['Tier Zero Default Risk'] || '').trim();
+        const matchesCbd = (filterState.compDefault.size === 0) || filterState.compDefault.has(cbdVal);
+        // Compromise by configuration
+        const cbcVal = String(row['Tier Zero Config Risk'] || '').trim();
+        const matchesCbc = (filterState.compConfig.size === 0) || filterState.compConfig.has(cbcVal);
+        // Is Tier Zero
+        const t0Val = String(row['Tier Zero'] || '').trim();
+        const matchesT0 = (filterState.isTierZero.size === 0) || filterState.isTierZero.has(t0Val);
+
+        return matchesSearch && matchesType && matchesIdp && matchesPas && matchesAdminsd && matchesEpisode && matchesCbd && matchesCbc && matchesT0;
       });
-    };
+
+      // Apply current sorting to the filtered data
+      if (currentSortedColumnIndex !== null && currentSortDirection !== 'none') {
+        const n = currentSortedColumnIndex;
+        const dir = currentSortDirection;
+        filteredData.sort(function(a, b) {
+          const field = visibleHeaders[n];
+          const x = field ? (a[field] ? String(a[field]).toLowerCase() : '') : '';
+          const y = field ? (b[field] ? String(b[field]).toLowerCase() : '') : '';
+          if (x < y) return dir === 'asc' ? -1 : 1;
+          if (x > y) return dir === 'asc' ? 1 : -1;
+          return 0;
+        });
+      }
+
+      currentData = filteredData;
+      createTable(filteredData, currentSortedColumnIndex, currentSortDirection);
+      // Update filter icon active state to reflect current applied filters
+      updateFilterIconActiveState();
+    }
 
     // Sort by header function with sort indicators
     function sortTable(n) {
-      var currentDir = sortDirections[n] || 'none';
+      const currentDir = sortDirections[n] || 'none';
 
       // Cycle through sort directions: none -> asc -> desc -> none
       if (currentDir === 'none') {
@@ -308,7 +847,7 @@
         sortDirections[n] = 'none';
       }
 
-      var dir = sortDirections[n];
+      const dir = sortDirections[n];
 
       if (dir === 'asc' || dir === 'desc') {
         // Update current sorted column and direction
@@ -321,12 +860,13 @@
         sortDirections[n] = 'none';
       }
 
-      var dataToSort = currentData.slice(); // Make a copy of the current data
+      let dataToSort = currentData.slice(); // Make a copy of the current data
 
       if (dir === 'asc' || dir === 'desc') {
         dataToSort.sort(function(a, b) {
-          var x = a[headers[n]] ? a[headers[n]].toLowerCase() : '';
-          var y = b[headers[n]] ? b[headers[n]].toLowerCase() : '';
+          const field = visibleHeaders[n];
+          const x = field ? (a[field] ? String(a[field]).toLowerCase() : '') : '';
+          const y = field ? (b[field] ? String(b[field]).toLowerCase() : '') : '';
           if (x < y) return dir === 'asc' ? -1 : 1;
           if (x > y) return dir === 'asc' ? 1 : -1;
           return 0;
@@ -337,6 +877,44 @@
 
       currentData = dataToSort; // Update current data
       createTable(dataToSort, currentSortedColumnIndex, currentSortDirection);
+    }
+
+    function handleRowSelect(rowData) {
+      const key = getRowKey(rowData);
+      selectedRowKey = key;
+      // Clear previous selection
+      Array.from(document.querySelectorAll('#table tbody tr.selected-row')).forEach(function(tr){ tr.classList.remove('selected-row'); });
+      // Highlight current row if present
+      const rowEl = document.querySelector('#table tbody tr[data-key="' + key.replace(/"/g, '\\"') + '"]');
+      if (rowEl) rowEl.classList.add('selected-row');
+      renderDetail(rowData);
+    }
+
+    // Indicate active filters on the filter button
+    function isAnyFilterActive() {
+      return Boolean(filterState.type) ||
+             filterState.idp.size > 0 ||
+             filterState.pas.size > 0 ||
+             filterState.adminsd.size > 0 ||
+             filterState.episode.size > 0 ||
+             filterState.compDefault.size > 0 ||
+             filterState.compConfig.size > 0 ||
+             filterState.isTierZero.size > 0;
+    }
+
+    function updateFilterIconActiveState() {
+      const btn = document.getElementById('openFilterBtn');
+      if (!btn) return;
+      const active = isAnyFilterActive();
+      if (active) {
+        btn.classList.add('filters-active');
+        btn.setAttribute('aria-pressed', 'true');
+        btn.title = 'Filter (active)';
+      } else {
+        btn.classList.remove('filters-active');
+        btn.setAttribute('aria-pressed', 'false');
+        btn.title = 'Filter';
+      }
     }
   </script>
 </body>
