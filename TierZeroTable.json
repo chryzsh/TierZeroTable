@@ -808,12 +808,12 @@
     "Tier Zero Default Risk": "YES - Takeover",
     "Tier Zero Config Risk": "N/A - Compromise by default",
     "Tier Zero": "YES",
-    "Rationale": "Microsoft explicitly documents that the Microsoft Entra Connect server must be treated as a Tier 0 component, the same as a domain controller. An attacker with administrative access to the server's OS can extract the credentials of the AD DS Connector Account from the Microsoft Entra Connect (ADSync) database, which by default has the privileges to perform a DCSync attack against the domain when Password Hash Synchronization is enabled. This yields full compromise of the domain, and where Entra Connect also syncs to a cloud tenant, can be leveraged toward Global Administrator in Entra ID as well. There is no known default configuration in which the server is not a security dependency for Tier Zero, so it is Tier Zero by default.",
+    "Rationale": "Microsoft explicitly documents that the Microsoft Entra Connect server must be treated as a Tier 0 component, the same as a domain controller. An attacker with administrative access to the server's OS can extract the credentials of the AD DS Connector Account from the Microsoft Entra Connect (ADSync) database, which by default has the privileges to perform a DCSync attack against the domain when Password Hash Synchronization is enabled. This yields full compromise of the domain, and where Entra Connect also syncs to a cloud tenant, can be leveraged toward Global Administrator in Entra ID as well - for example by hijacking a vulnerable service principal reachable from the on-premises foothold. There is no known default configuration in which the server is not a security dependency for Tier Zero, so it is Tier Zero by default.",
     "Cypher": "N/A - Not identifiable via BloodHound collection alone. Cross-reference server inventories/CMDB against known Microsoft Entra Connect installations.",
     "Microsoft PAS Role": "NO",
     "AdminSDHolder Protected": "N/A",
     "Episode": "Community contribution",
-    "References": "https://learn.microsoft.com/en-us/entra/identity/hybrid/connect/how-to-connect-install-prerequisites#azure-ad-connect-server\r\nhttps://dirkjanm.io/obtaining-domain-admin-from-azure-ad-via-cloud-kerberos-trust/\r\nhttps://adsecurity.org/?p=4825\r\nhttps://posts.specterops.io/update-dumping-entra-connect-sync-credentials-4a9114734f71"
+    "References": "https://docs.azure.cn/en-us/entra/identity/hybrid/connect/how-to-connect-install-prerequisites#azure-ad-connect-server\r\nhttps://dirkjanm.io/obtaining-domain-admin-from-azure-ad-via-cloud-kerberos-trust/\r\nhttps://adsecurity.org/?p=4825\r\nhttps://posts.specterops.io/update-dumping-entra-connect-sync-credentials-4a9114734f71\r\nhttps://snotra.uk/from-domain-user-to-domain-admin-da-from-da-to-global-admin-ga.html"
   },
   {
     "Asset": "AD DS Connector Account",
@@ -829,6 +829,6 @@
     "Microsoft PAS Role": "NO",
     "AdminSDHolder Protected": "NO",
     "Episode": "Community contribution",
-    "References": "https://learn.microsoft.com/en-us/entra/identity/hybrid/connect/how-to-connect-install-prerequisites#azure-ad-connect-server\r\nhttps://dirkjanm.io/obtaining-domain-admin-from-azure-ad-via-cloud-kerberos-trust/\r\nhttps://posts.specterops.io/update-dumping-entra-connect-sync-credentials-4a9114734f71"
+    "References": "https://docs.azure.cn/en-us/entra/identity/hybrid/connect/how-to-connect-install-prerequisites#azure-ad-connect-server\r\nhttps://dirkjanm.io/obtaining-domain-admin-from-azure-ad-via-cloud-kerberos-trust/\r\nhttps://posts.specterops.io/update-dumping-entra-connect-sync-credentials-4a9114734f71"
   }
 ]
