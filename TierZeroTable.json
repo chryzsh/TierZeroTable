@@ -798,5 +798,21 @@
     "AdminSDHolder Protected": "NO",
     "Episode": "Community contribution",
     "References": "https://specterops.io/blog/2025/06/25/untrustworthy-trust-builders-account-operators-replicating-trust-attack-aorta/"
+  },
+  {
+    "Asset": "ESX Admins",
+    "Category": "AD group",
+    "Platform": "Active Directory",
+    "Identification": "CN: ESX Admins (default group name; configurable per-host via the advanced setting Config.HostAgent.plugins.hostsvc.esxAdminsGroup)",
+    "Description": "The ESX Admins group is not created by Active Directory, but is looked up by name by ESXi hosts that have been joined to an AD domain for authentication. If a group with this name exists in AD (it is not created automatically), every ESXi host configured to trust it will grant full Administrator role to all of its members.\r\n\r\nOrganizations also commonly create custom AD groups (e.g. \"vCenter Admins\", \"VMware Global Administrators\") to delegate administrative access to vCenter/ESXi, which carry equivalent risk to the ESX Admins group described here.",
+    "Tier Zero Default Risk": "IT DEPENDS",
+    "Tier Zero Config Risk": "YES - Takeover",
+    "Tier Zero": "IT DEPENDS",
+    "Rationale": "Joining ESXi hosts to an Active Directory domain is not a default configuration, but is common in practice. Prior to vSphere 8.0 Update 3 (released October 2024), any AD group named \"ESX Admins\" was automatically granted full Administrator privileges on every domain-joined ESXi host, with no further configuration required - simply creating a group with that name in AD was enough. Since 8.0 Update 3 this behavior is disabled by default and must be explicitly re-enabled per host via an advanced setting, but many environments still run pre-8.0U3 hosts or have re-enabled the setting for compatibility.\r\n\r\nWhere this access exists and the affected ESXi host(s) run virtualized domain controllers or other Tier Zero systems, members of the group can access the underlying virtual disks directly (e.g. by cloning or mounting the VM's VMDK), bypassing the guest OS's security controls entirely, extract NTDS.dit and the SYSTEM registry hive, and perform an offline DCSync-equivalent credential extraction. This has been directly observed in ransomware intrusions (e.g. Scattered Spider/UNC3944) as a path to full domain compromise. Whether the group represents a default or configuration-dependent risk therefore depends on the vSphere version/patch level and host configuration, and whether it reaches Tier Zero depends on whether the affected host(s) run Tier Zero workloads.",
+    "Cypher": "MATCH (n:Group)\r\nWHERE n.name STARTS WITH 'ESX ADMINS@'\r\nRETURN n",
+    "Microsoft PAS Role": "NO",
+    "AdminSDHolder Protected": "NO",
+    "Episode": "Community contribution",
+    "References": "https://cloud.google.com/blog/topics/threat-intelligence/defending-vsphere-from-unc3944\r\nhttps://cloud.google.com/blog/topics/threat-intelligence/vsphere-active-directory-integration-risks"
   }
 ]
