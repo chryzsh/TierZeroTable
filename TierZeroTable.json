@@ -804,7 +804,7 @@
     "Category": "AD group",
     "Platform": "Active Directory",
     "Identification": "CN: ESX Admins (default group name; configurable per-host via the advanced setting Config.HostAgent.plugins.hostsvc.esxAdminsGroup)",
-    "Description": "The ESX Admins group is not created by Active Directory, but is looked up by name by ESXi hosts that have been joined to an AD domain for authentication. If a group with this name exists in AD (it is not created automatically), every ESXi host configured to trust it will grant full Administrator role to all of its members.\r\n\r\nOrganizations also commonly create custom AD groups (e.g. \"vCenter Admins\", \"VMware Global Administrators\") to delegate administrative access to vCenter/ESXi, which carry equivalent risk to the ESX Admins group described here.",
+    "Description": "The ESX Admins group is not created by Active Directory, but is looked up by name by ESXi hosts that have been joined directly to an AD domain for authentication. If a group with this name exists in AD (it is not created automatically), every such ESXi host will grant full Administrator role to all of its members. This is distinct from the AD-integrated vCenter Server scenario described under the \"vCenter Server\" entry.",
     "Tier Zero Default Risk": "IT DEPENDS",
     "Tier Zero Config Risk": "YES - Takeover",
     "Tier Zero": "IT DEPENDS",
@@ -812,6 +812,22 @@
     "Cypher": "MATCH (n:Group)\r\nWHERE n.name STARTS WITH 'ESX ADMINS@'\r\nRETURN n",
     "Microsoft PAS Role": "NO",
     "AdminSDHolder Protected": "NO",
+    "Episode": "Community contribution",
+    "References": "https://cloud.google.com/blog/topics/threat-intelligence/defending-vsphere-from-unc3944\r\nhttps://cloud.google.com/blog/topics/threat-intelligence/vsphere-active-directory-integration-risks"
+  },
+  {
+    "Asset": "vCenter Server",
+    "Category": "Computer host",
+    "Platform": "Active Directory",
+    "Identification": "Not applicable - Not represented as an object. Identify by locating the vCenter Server Appliance managing ESXi hosts, and check whether it has an Active Directory Identity Source configured under vCenter Single Sign-On, and which virtual machines it manages.",
+    "Description": "vCenter Server is the centralized management platform for ESXi hosts and virtual machines, and is commonly configured with Active Directory as an Identity Source for vCenter Single Sign-On so that AD users and groups can be assigned vCenter roles (e.g. Administrator) without a separate local vCenter identity. A vCenter role holder with sufficient VM-level privileges (Administrator, or a custom role granting rights such as snapshot management, console access, or virtual disk access) can interact with any virtual machine the role is scoped to, regardless of that VM's guest-level permissions.",
+    "Tier Zero Default Risk": "NO",
+    "Tier Zero Config Risk": "YES - Takeover",
+    "Tier Zero": "IT DEPENDS",
+    "Rationale": "Neither running Tier Zero systems (such as domain controllers) as virtual machines nor federating vCenter Single Sign-On to Active Directory is a default configuration, but both are common. Where a vCenter Server manages one or more Tier Zero VMs, and AD principals can be assigned a privileged vCenter role over those VMs (directly, through an AD-backed Identity Source, or through a custom role such as \"vCenter Admins\"/\"VMware Global Administrators\"), those principals can compromise Tier Zero without ever authenticating to the guest OS. For example, a vCenter Administrator can snapshot or clone a domain controller VM and mount its virtual disk offline to extract NTDS.dit and the SYSTEM registry hive, or use console/remote-console access, hot-add a malicious virtual disk, or modify VM boot options to obtain code execution inside the guest. This has been directly observed in ransomware intrusions (e.g. Scattered Spider/UNC3944) as a path to full domain compromise. It is common for such vCenter roles to be granted more broadly than Domain Admins/Tier Zero membership, since vCenter administration is frequently delegated to virtualization/infrastructure teams rather than identity teams. Because both the presence of Tier Zero VMs under vCenter's management and the scope of AD-derived vCenter role assignments vary by environment, the vCenter Server is Tier Zero only in environments where these conditions apply, but this is the common case in practice, and should be verified rather than assumed absent.",
+    "Cypher": "N/A - Not identifiable via BloodHound collection alone. Cross-reference vCenter role assignments (Administrators, and any custom roles with VM-provisioning/snapshot/console rights) and their managed VM inventory against Tier Zero systems.",
+    "Microsoft PAS Role": "NO",
+    "AdminSDHolder Protected": "N/A",
     "Episode": "Community contribution",
     "References": "https://cloud.google.com/blog/topics/threat-intelligence/defending-vsphere-from-unc3944\r\nhttps://cloud.google.com/blog/topics/threat-intelligence/vsphere-active-directory-integration-risks"
   }
